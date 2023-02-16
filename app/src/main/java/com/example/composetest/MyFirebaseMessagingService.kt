@@ -44,15 +44,62 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "Message data : ${remoteMessage.data}")
         Log.d(TAG, "Message noti : ${remoteMessage.notification}")
 
-        if(remoteMessage.data.isNotEmpty()){
-            //알림생성
-            sendNotification(remoteMessage)
-//            Log.d(TAG, remoteMessage.data["title"].toString())
-//            Log.d(TAG, remoteMessage.data["body"].toString())
-        }else {
-            Log.e(TAG, "data가 비어있습니다. 메시지를 수신하지 못했습니다.")
+
+        if (remoteMessage.notification != null) {
+            Log.e(TAG, "Message Notification Body: " + remoteMessage.notification!!.body)
+            sendNotification(remoteMessage)//.notification!!.body)
         }
+        onDeletedMessages()
     }
+private fun sendNotification(messageBody: String?) {
+//    val intent = Intent(this, MainActivity::class.java)
+//    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+//    Log.e(TAG, "mesg=${messageBody}")
+//
+//    val pendingIntent = PendingIntent.getActivity(
+//        this, 0 /* Request code */,
+//        intent, PendingIntent.FLAG_IMMUTABLE
+//    )
+//    val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+//    val channelId = getString(R.string.default_notification_channel_id)
+//    val channelName: CharSequence = getString(R.string.default_notification_channel_name)
+//    val importance = NotificationManager.IMPORTANCE_LOW
+//    val notificationChannel = NotificationChannel(channelId, channelName, importance)
+//    notificationChannel.enableLights(true)
+//    notificationChannel.lightColor = Color.BLUE
+//    notificationChannel.enableVibration(true)
+//    notificationChannel.vibrationPattern =
+//        longArrayOf(100, 200, 300, 400, 500, 400, 300, 200, 400)
+//    notificationManager.createNotificationChannel(notificationChannel)
+//    val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+//    val notificationBuilder = NotificationCompat.Builder(this, channelId)
+//        .setSmallIcon(R.mipmap.ic_logo645_foreground)
+//        .setContentTitle(getString(R.string.fcm_message))
+//        .setContentText(messageBody)
+//        .setAutoCancel(true)
+//        .setSound(defaultSoundUri)
+//        .extend(
+//            NotificationCompat.WearableExtender()
+//                .setBridgeTag("Foo")
+//                .setContentIcon(R.mipmap.ic_logo645_foreground)
+//        )
+//        .setContentIntent(pendingIntent)
+//
+//    // Since android Oreo notification channel is needed.
+//    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//        val channel = NotificationChannel(
+//            channelId,
+//            "Channel human readable title",
+//            NotificationManager.IMPORTANCE_DEFAULT
+//        )
+//        notificationManager.createNotificationChannel(channel)
+//    }
+//
+//    // Dismiss notification once the user touches it.
+//    notificationBuilder.setAutoCancel(true)
+//    notificationManager.notify(0 /* ID of notification */, notificationBuilder.build())
+}
+
 
     /** 알림 생성 메서드 */
     private fun sendNotification(remoteMessage: RemoteMessage) {
@@ -66,8 +113,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             intent.putExtra(key, remoteMessage.data.getValue(key))
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Activity Stack 을 경로만 남김(A-B-C-D-B => A-B)
-        val pendingIntent = PendingIntent.getActivity(this, uniId, intent, PendingIntent.FLAG_ONE_SHOT)
-
+//        val pendingIntent = PendingIntent.getActivity(this, uniId, intent, PendingIntent.FLAG_ONE_SHOT)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0 /* Request code */,
+            intent, PendingIntent.FLAG_IMMUTABLE
+        )
         // 알림 채널 이름
         val channelId = "my_channel"
         // 알림 소리
@@ -100,7 +150,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         FirebaseMessaging.getInstance().token.addOnSuccessListener {
             Log.d(TAG, "token=${it}")
         }
-
+        // eVh8cmA6TKyluftyVWOJ_j:APA91bFm2sUTNggIkmNw8ONpiQUbIic9F2EliKP9xa-4bjdHNLe0Ud4dxQxQXwZvxR9tZsynR_bW6JE8UfuSu00DTciGP1UtVjkGphUC3x1-jL9RRWKCcwLTrTxpUwdMdjEXFIRBR8Jd
 //		  //동기방식
 //        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
 //                if (!task.isSuccessful) {

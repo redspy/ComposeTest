@@ -19,9 +19,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.composetest.ui.theme.ComposeTestTheme
-
 class MainActivity : ComponentActivity() {
 
+    /** DynamicLink */
+    private fun initDynamicLink() {
+        val dynamicLinkData = intent.extras
+        if (dynamicLinkData != null) {
+            var dataStr = "DynamicLink 수신받은 값\n"
+            for (key in dynamicLinkData.keySet()) {
+                dataStr += "key: $key / value: ${dynamicLinkData.getString(key)}\n"
+            }
+            Toast.makeText(this@MainActivity, dataStr, Toast.LENGTH_LONG).show()
+            // binding.tvToken.text = dataStr
+        }
+    }
+    /*
+    BJGlwc59TEw024WP7t9Mc0BsQxEeUvdpQZlGOYJDKeQD4_g3U9r6KHryguu5C-foJiv1QX9AYs7O-2uHCxCxAqc
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -38,6 +52,11 @@ class MainActivity : ComponentActivity() {
         var lostLocationTest = "" + lastLocation?.latitude + "," + lastLocation?.longitude
         Toast.makeText(this@MainActivity, lostLocationTest, Toast.LENGTH_LONG).show()
 
+        /** FCM설정, Token값 가져오기 */
+        MyFirebaseMessagingService().getFirebaseToken()
+
+        /** DynamicLink 수신확인 */
+        initDynamicLink()
 
         setContent {
             ComposeTestTheme {
