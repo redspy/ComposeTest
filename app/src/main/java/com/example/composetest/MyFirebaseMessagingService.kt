@@ -26,8 +26,8 @@ import retrofit2.http.POST
 
 class Constants {
     companion object {
-        const val BASE_URL = "https://fcm.googleapis.com"
-        const val SERVER_KEY = "BJGlwc59TEw024WP7t9Mc0BsQxEeUvdpQZlGOYJDKeQD4_g3U9r6KHryguu5C-foJiv1QX9AYs7O-2uHCxCxAqc"
+        const val BASE_URL = "https://fcm.googleapis.com/"
+        const val SERVER_KEY = "AAAAt3OXB1A:APA91bEdwTCp2-1bKfqJAp6W-Vncrn8Jlvkz4yg9e-3h6olmpFYRd08Qcv-Cy4g6Ab5enfGv6xVCF6Y-WY-DisXGX13LEvesRGBqEOiFfKhf97xUmea9ml6vPPJACZ6ceQECYPNmD0Jb"
         const val CONTENT_TYPE = "application/json"
     }
 }
@@ -195,7 +195,7 @@ private fun sendNotification(messageBody: String?) {
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.pocket_mon_picachu) // 아이콘 설정
             .setContentTitle(remoteMessage.data["title"].toString()) // 제목
-            .setContentText(remoteMessage.data["body"].toString()) // 메시지 내용
+            .setContentText(remoteMessage.data["message"].toString()) // 메시지 내용
             .setAutoCancel(true) // 알람클릭시 삭제여부
             .setSound(soundUri)  // 알림 소리
             .setContentIntent(pendingIntent) // 알림 실행 시 Intent

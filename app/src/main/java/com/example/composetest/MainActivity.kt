@@ -30,6 +30,9 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     /** DynamicLink */
+    private fun makeToast(text: String) {
+        Toast.makeText(this@MainActivity, text, Toast.LENGTH_LONG).show()
+    }
     private fun initDynamicLink() {
         val dynamicLinkData = intent.extras
         if (dynamicLinkData != null) {
@@ -104,20 +107,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private fun sendNotification(notification: PushNotification) = CoroutineScope(Dispatchers.IO).launch {
+        try {
+            val response = RetrofitInstance.api.postNotification(notification)
+            if(response.isSuccessful) {
+                Log.d(TAG, "Response: ${Gson().toJson(response)}")
+            } else {
+                Log.e(TAG, response.errorBody().toString())
+                makeToast(response.errorBody().toString())
+            }
+        } catch(e: Exception) {
+            Log.e(TAG, e.toString())
+        }
+    }
+
 }
 
-private fun sendNotification(notification: PushNotification) = CoroutineScope(Dispatchers.IO).launch {
-    try {
-        val response = RetrofitInstance.api.postNotification(notification)
-        if(response.isSuccessful) {
-            Log.d(TAG, "Response: ${Gson().toJson(response)}")
-        } else {
-            Log.e(TAG, response.errorBody().toString())
-        }
-    } catch(e: Exception) {
-        Log.e(TAG, e.toString())
-    }
-}
 
 @Preview
 @Composable
