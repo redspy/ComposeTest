@@ -5,13 +5,67 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.example.composetest.Constants.Companion.BASE_URL
+import com.example.composetest.Constants.Companion.CONTENT_TYPE
+import com.example.composetest.Constants.Companion.SERVER_KEY
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import okhttp3.ResponseBody
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.Headers
+import retrofit2.http.POST
+
+class Constants {
+    companion object {
+        const val BASE_URL = "https://fcm.googleapis.com"
+        const val SERVER_KEY = "BJGlwc59TEw024WP7t9Mc0BsQxEeUvdpQZlGOYJDKeQD4_g3U9r6KHryguu5C-foJiv1QX9AYs7O-2uHCxCxAqc"
+        const val CONTENT_TYPE = "application/json"
+    }
+}
+
+private const val CHANNEL_ID = "my_channel"
+
+interface NotificationAPI {
+
+    @Headers("Authorization: key=$SERVER_KEY", "Content-Type:$CONTENT_TYPE")
+    @POST("fcm/send")
+    suspend fun postNotification(
+        @Body notification: PushNotification
+    ): Response<ResponseBody>
+}
+
+data class PushNotification(
+    val data: NotificationData,
+    var to: String
+)
+
+data class NotificationData(
+    val title: String,
+    val message: String
+)
+
+class RetrofitInstance {
+    companion object {
+        private val retrofit by lazy {
+            Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+        }
+        val api by lazy {
+            retrofit.create(NotificationAPI::class.java)
+        }
+    }
+}
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
     /** 푸시 알림으로 보낼 수 있는 메세지는 2가지
@@ -19,17 +73,28 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
      * 2. Data: 실행중이거나 백그라운드(앱이 실행중이지 않을때) 알림이 옴 -> TODO: 대부분 사용하는 방식 */
 
     private val TAG = "FirebaseService"
+    companion object {
+        var sharedPref: SharedPreferences? = null
 
+        var token: String?
+            get() {
+                return sharedPref?.getString("token", "")
+            }
+            set(value) {
+                sharedPref?.edit()?.putString("token", value)?.apply()
+            }
+    }
     /** Token 생성 메서드(FirebaseInstanceIdService 사라짐) */
     override fun onNewToken(token: String) {
-        Log.d(TAG, "new Token: $token")
-
-        // 토큰 값을 따로 저장
-        val pref = this.getSharedPreferences("token", Context.MODE_PRIVATE)
-        val editor = pref.edit()
-        editor.putString("token", token).apply()
-        editor.commit()
-        Log.i(TAG, "성공적으로 토큰을 저장함")
+//        Log.d(TAG, "new Token: $token")
+//
+//        // 토큰 값을 따로 저장
+//        val pref = this.getSharedPreferences("token", Context.MODE_PRIVATE)
+//        val editor = pref.edit()
+//        editor.putString("token", token).apply()
+//        editor.commit()
+//        Log.i(TAG, "성공적으로 토큰을 저장함")
+        super.onNewToken(token)
     }
 
     /** 메시지 수신 메서드(포그라운드) */
@@ -44,8 +109,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "Message data : ${remoteMessage.data}")
         Log.d(TAG, "Message noti : ${remoteMessage.notification}")
 
-
-        if (remoteMessage.notification != null) {
+        if (remoteMessage.data.isNotEmpty()) {
+            Log.d(TAG, "data is not Empty")
+            Log.d(TAG, remoteMessage.data["title"].toString())
+            Log.d(TAG, remoteMessage.data["body"].toString())
+            sendNotificationData(remoteMessage)
+        }
+        else if (remoteMessage.notification != null) {
             Log.e(TAG, "Message Notification Body: " + remoteMessage.notification!!.body)
             sendNotification(remoteMessage)//.notification!!.body)
         }
@@ -100,7 +170,47 @@ private fun sendNotification(messageBody: String?) {
 //    notificationManager.notify(0 /* ID of notification */, notificationBuilder.build())
 }
 
+    private fun sendNotificationData(remoteMessage: RemoteMessage) {
+        // RequestCode, Id를 고유값으로 지정하여 알림이 개별 표시
+        val uniId: Int = (System.currentTimeMillis() / 7).toInt()
 
+        // 일회용 PendingIntent : Intent 의 실행 권한을 외부의 어플리케이션에게 위임
+        val intent = Intent(this, MainActivity::class.java)
+        //각 key, value 추가
+        for(key in remoteMessage.data.keys){
+            intent.putExtra(key, remoteMessage.data.getValue(key))
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Activity Stack 을 경로만 남김(A-B-C-D-B => A-B)
+//        val pendingIntent = PendingIntent.getActivity(this, uniId, intent, PendingIntent.FLAG_ONE_SHOT)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0 /* Request code */,
+            intent, PendingIntent.FLAG_IMMUTABLE
+        )
+        // 알림 채널 이름
+        val channelId = "my_channel"
+        // 알림 소리
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+        // 알림에 대한 UI 정보, 작업
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.pocket_mon_picachu) // 아이콘 설정
+            .setContentTitle(remoteMessage.data["title"].toString()) // 제목
+            .setContentText(remoteMessage.data["body"].toString()) // 메시지 내용
+            .setAutoCancel(true) // 알람클릭시 삭제여부
+            .setSound(soundUri)  // 알림 소리
+            .setContentIntent(pendingIntent) // 알림 실행 시 Intent
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // 오레오 버전 이후에는 채널이 필요
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "Notice", NotificationManager.IMPORTANCE_DEFAULT)
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        // 알림 생성
+        notificationManager.notify(uniId, notificationBuilder.build())
+    }
     /** 알림 생성 메서드 */
     private fun sendNotification(remoteMessage: RemoteMessage) {
         // RequestCode, Id를 고유값으로 지정하여 알림이 개별 표시
@@ -125,7 +235,7 @@ private fun sendNotification(messageBody: String?) {
 
         // 알림에 대한 UI 정보, 작업
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher) // 아이콘 설정
+            .setSmallIcon(R.drawable.pocket_mon_picachu) // 아이콘 설정
             .setContentTitle(remoteMessage.notification?.title) // 제목
             .setContentText(remoteMessage.notification?.body) // 메시지 내용
             .setAutoCancel(true) // 알람클릭시 삭제여부

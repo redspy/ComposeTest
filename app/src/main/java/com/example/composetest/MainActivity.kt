@@ -1,5 +1,7 @@
 package com.example.composetest
 
+import android.content.ContentValues.TAG
+import android.content.Context
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
@@ -19,6 +21,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.composetest.ui.theme.ComposeTestTheme
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 class MainActivity : ComponentActivity() {
 
     /** DynamicLink */
@@ -58,6 +66,28 @@ class MainActivity : ComponentActivity() {
         /** DynamicLink 수신확인 */
         initDynamicLink()
 
+        val TOPIC = "/topics/myTopic2"
+
+        MyFirebaseMessagingService.sharedPref = getSharedPreferences("sharedPref", Context.MODE_PRIVATE)
+//        FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener {
+//            MyFirebaseMessagingService.token = it.token
+//            etToken.setText(it.token)
+//            Log.e("MainActivity", it.token)
+//        }
+        FirebaseMessaging.getInstance().subscribeToTopic(TOPIC)
+
+        val title = "Let's Go!"
+        val message = "Together"
+        val recipientToken = "eVh8cmA6TKyluftyVWOJ_j:APA91bFm2sUTNggIkmNw8ONpiQUbIic9F2EliKP9xa-4bjdHNLe0Ud4dxQxQXwZvxR9tZsynR_bW6JE8UfuSu00DTciGP1UtVjkGphUC3x1-jL9RRWKCcwLTrTxpUwdMdjEXFIRBR8Jd"
+        if(title.isNotEmpty() && message.isNotEmpty() && recipientToken.isNotEmpty()) {
+            PushNotification(
+                NotificationData(title, message),
+                recipientToken
+            ).also {
+                sendNotification(it)
+            }
+        }
+
         setContent {
             ComposeTestTheme {
                 // A surface container using the 'background' color from the theme
@@ -73,6 +103,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+}
+
+private fun sendNotification(notification: PushNotification) = CoroutineScope(Dispatchers.IO).launch {
+    try {
+        val response = RetrofitInstance.api.postNotification(notification)
+        if(response.isSuccessful) {
+            Log.d(TAG, "Response: ${Gson().toJson(response)}")
+        } else {
+            Log.e(TAG, response.errorBody().toString())
+        }
+    } catch(e: Exception) {
+        Log.e(TAG, e.toString())
     }
 }
 
