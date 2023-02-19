@@ -6,8 +6,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.composetest.Constants.Companion.BASE_URL
@@ -23,6 +25,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.Headers
 import retrofit2.http.POST
+
 
 class Constants {
     companion object {
@@ -191,6 +194,31 @@ private fun sendNotification(messageBody: String?) {
         // 알림 소리
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
+        val audio = getSystemService(AUDIO_SERVICE) as AudioManager
+        val currentVolume: Int = audio.getStreamVolume(AudioManager.STREAM_SYSTEM)
+
+        val ringerMode = audio.ringerMode
+
+        audio.setStreamVolume(AudioManager.STREAM_SYSTEM, 5, 1)
+        audio.playSoundEffect(AudioManager.FX_KEYPRESS_INVALID, 15.0f)
+        val zenModeValue = Settings.Global.getInt(contentResolver, "zen_mode")
+
+        when (zenModeValue) {
+            0 -> Log.d("TAG", "DnD:Off")
+            1 -> Log.d("TAG", "DnD:ON-Priority Only")
+            2 -> Log.d("TAG", "DnD:ON-Total Silence")
+            3 -> Log.d("TAG", "DnD:ON-Alarms Only")
+        }
+
+        try {
+            audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
+        }
+        catch(e: Exception) {
+            callActivityForPolicyAccessSettings()
+        }
+
+        //audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
+//audio.setStreamVolume(AudioManager.STREAM_ALARM, 10, true)
         // 알림에 대한 UI 정보, 작업
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.pocket_mon_picachu) // 아이콘 설정
@@ -202,6 +230,8 @@ private fun sendNotification(messageBody: String?) {
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+
+
         // 오레오 버전 이후에는 채널이 필요
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, "Notice", NotificationManager.IMPORTANCE_DEFAULT)
@@ -210,6 +240,29 @@ private fun sendNotification(messageBody: String?) {
 
         // 알림 생성
         notificationManager.notify(uniId, notificationBuilder.build())
+    }
+
+
+    private fun callActivityForPolicyAccessSettings() {
+        // Ask the user to grant access
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        try {
+            //휴대폰이 방해금지 모드일때 오류 발생
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (notificationManager != null) && !notificationManager.isNotificationPolicyAccessGranted) {
+                val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (notificationManager != null) && notificationManager.isNotificationPolicyAccessGranted) {
+                    val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+                    if (audioManager != null) {
+                        audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
     /** 알림 생성 메서드 */
     private fun sendNotification(remoteMessage: RemoteMessage) {
