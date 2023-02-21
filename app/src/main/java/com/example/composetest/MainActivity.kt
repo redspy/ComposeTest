@@ -50,46 +50,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        LocationHelper().startListeningUserLocation(this , object : LocationHelper.MyLocationListener {
-            override fun onLocationChanged(location: Location) {
-                // Here you got user location :)
-                var locationText = "" + location.latitude + "," + location.longitude
-                Log.d("Location","" + location.latitude + "," + location.longitude)
-                Toast.makeText(this@MainActivity, locationText, Toast.LENGTH_LONG).show()
-            }
-        })
+        CheckLocation()
 
-        var lastLocation = LocationHelper().getLastLocation(this)
-        var lostLocationTest = "" + lastLocation?.latitude + "," + lastLocation?.longitude
-        Toast.makeText(this@MainActivity, lostLocationTest, Toast.LENGTH_LONG).show()
+        InitializeFirebase()
 
-        /** FCM설정, Token값 가져오기 */
-        MyFirebaseMessagingService().getFirebaseToken()
-
-        /** DynamicLink 수신확인 */
-        initDynamicLink()
-
-        val TOPIC = "/topics/myTopic2"
-
-        MyFirebaseMessagingService.sharedPref = getSharedPreferences("sharedPref", Context.MODE_PRIVATE)
-//        FirebaseInstanceId.getInstance().instanceId.addOnSuccessListener {
-//            MyFirebaseMessagingService.token = it.token
-//            etToken.setText(it.token)
-//            Log.e("MainActivity", it.token)
-//        }
-        FirebaseMessaging.getInstance().subscribeToTopic(TOPIC)
-
-        val title = "Let's Go!"
-        val message = "Together"
-        val recipientToken = "eVh8cmA6TKyluftyVWOJ_j:APA91bFm2sUTNggIkmNw8ONpiQUbIic9F2EliKP9xa-4bjdHNLe0Ud4dxQxQXwZvxR9tZsynR_bW6JE8UfuSu00DTciGP1UtVjkGphUC3x1-jL9RRWKCcwLTrTxpUwdMdjEXFIRBR8Jd"
-        if(title.isNotEmpty() && message.isNotEmpty() && recipientToken.isNotEmpty()) {
-            PushNotification(
-                NotificationData(title, message),
-                recipientToken
-            ).also {
-                sendNotification(it)
-            }
-        }
+        //SendNotification()
 
         setContent {
             ComposeTestTheme {
@@ -102,12 +67,62 @@ class MainActivity : ComponentActivity() {
                         //TestButton("Bad")
                         //Greeting("Android")
                         CardCompose()
+                        Card {
+                            Button(onClick = {
+                                SendNotification()
+                            }) {
+
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    private fun sendNotification(notification: PushNotification) = CoroutineScope(Dispatchers.IO).launch {
+
+    private fun SendNotification() {
+        val title = "Let's Go!"
+        val message = "Together"
+        val recipientToken =
+            "eVh8cmA6TKyluftyVWOJ_j:APA91bFm2sUTNggIkmNw8ONpiQUbIic9F2EliKP9xa-4bjdHNLe0Ud4dxQxQXwZvxR9tZsynR_bW6JE8UfuSu00DTciGP1UtVjkGphUC3x1-jL9RRWKCcwLTrTxpUwdMdjEXFIRBR8Jd"
+        if (title.isNotEmpty() && message.isNotEmpty() && recipientToken.isNotEmpty()) {
+            PushNotification(
+                NotificationData(title, message),
+                recipientToken
+            ).also {
+                sendNotification(it)
+            }
+        }
+    }
+
+    private fun InitializeFirebase() {
+        /** FCM설정, Token값 가져오기 */
+        MyFirebaseMessagingService().getFirebaseToken()
+        /** DynamicLink 수신확인 */
+        initDynamicLink()
+        val TOPIC = "/topics/myTopic2"
+        MyFirebaseMessagingService.sharedPref = getSharedPreferences("sharedPref", MODE_PRIVATE)
+        FirebaseMessaging.getInstance().subscribeToTopic(TOPIC)
+    }
+
+    private fun CheckLocation() {
+        LocationHelper().startListeningUserLocation(
+            this,
+            object : LocationHelper.MyLocationListener {
+                override fun onLocationChanged(location: Location) {
+                    // Here you got user location :)
+                    var locationText = "" + location.latitude + "," + location.longitude
+                    Log.d("Location", "" + location.latitude + "," + location.longitude)
+                    Toast.makeText(this@MainActivity, locationText, Toast.LENGTH_LONG).show()
+                }
+            })
+
+        var lastLocation = LocationHelper().getLastLocation(this)
+        var lostLocationTest = "" + lastLocation?.latitude + "," + lastLocation?.longitude
+        Toast.makeText(this@MainActivity, lostLocationTest, Toast.LENGTH_LONG).show()
+    }
+
+    fun sendNotification(notification: PushNotification) = CoroutineScope(Dispatchers.IO).launch {
         try {
             val response = RetrofitInstance.api.postNotification(notification)
             if(response.isSuccessful) {

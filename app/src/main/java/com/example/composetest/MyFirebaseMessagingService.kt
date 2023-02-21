@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.media.AudioManager
-import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
 import android.provider.Settings
@@ -90,24 +89,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
     /** Token 생성 메서드(FirebaseInstanceIdService 사라짐) */
     override fun onNewToken(token: String) {
-//        Log.d(TAG, "new Token: $token")
-//
-//        // 토큰 값을 따로 저장
-//        val pref = this.getSharedPreferences("token", Context.MODE_PRIVATE)
-//        val editor = pref.edit()
-//        editor.putString("token", token).apply()
-//        editor.commit()
-//        Log.i(TAG, "성공적으로 토큰을 저장함")
         super.onNewToken(token)
     }
 
     /** 메시지 수신 메서드(포그라운드) */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "From: " + remoteMessage!!.from)
-
-        // Notification 메시지를 수신할 경우
-        // remoteMessage.notification?.body!! 여기에 내용이 저장되있음
-        // Log.d(TAG, "Notification Message Body: " + remoteMessage.notification?.body!!)
 
         //받은 remoteMessage의 값 출력해보기. 데이터메세지 / 알림메세지
         Log.d(TAG, "Message data : ${remoteMessage.data}")
@@ -125,59 +112,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
         onDeletedMessages()
     }
-private fun sendNotification(messageBody: String?) {
-//    val intent = Intent(this, MainActivity::class.java)
-//    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-//    Log.e(TAG, "mesg=${messageBody}")
-//
-//    val pendingIntent = PendingIntent.getActivity(
-//        this, 0 /* Request code */,
-//        intent, PendingIntent.FLAG_IMMUTABLE
-//    )
-//    val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-//    val channelId = getString(R.string.default_notification_channel_id)
-//    val channelName: CharSequence = getString(R.string.default_notification_channel_name)
-//    val importance = NotificationManager.IMPORTANCE_LOW
-//    val notificationChannel = NotificationChannel(channelId, channelName, importance)
-//    notificationChannel.enableLights(true)
-//    notificationChannel.lightColor = Color.BLUE
-//    notificationChannel.enableVibration(true)
-//    notificationChannel.vibrationPattern =
-//        longArrayOf(100, 200, 300, 400, 500, 400, 300, 200, 400)
-//    notificationManager.createNotificationChannel(notificationChannel)
-//    val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-//    val notificationBuilder = NotificationCompat.Builder(this, channelId)
-//        .setSmallIcon(R.mipmap.ic_logo645_foreground)
-//        .setContentTitle(getString(R.string.fcm_message))
-//        .setContentText(messageBody)
-//        .setAutoCancel(true)
-//        .setSound(defaultSoundUri)
-//        .extend(
-//            NotificationCompat.WearableExtender()
-//                .setBridgeTag("Foo")
-//                .setContentIcon(R.mipmap.ic_logo645_foreground)
-//        )
-//        .setContentIntent(pendingIntent)
-//
-//    // Since android Oreo notification channel is needed.
-//    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//        val channel = NotificationChannel(
-//            channelId,
-//            "Channel human readable title",
-//            NotificationManager.IMPORTANCE_DEFAULT
-//        )
-//        notificationManager.createNotificationChannel(channel)
-//    }
-//
-//    // Dismiss notification once the user touches it.
-//    notificationBuilder.setAutoCancel(true)
-//    notificationManager.notify(0 /* ID of notification */, notificationBuilder.build())
-}
-
     private fun sendNotificationData(remoteMessage: RemoteMessage) {
-        // RequestCode, Id를 고유값으로 지정하여 알림이 개별 표시
-        val uniId: Int = (System.currentTimeMillis() / 7).toInt()
-
         // 일회용 PendingIntent : Intent 의 실행 권한을 외부의 어플리케이션에게 위임
         val intent = Intent(this, MainActivity::class.java)
         //각 key, value 추가
@@ -185,15 +120,6 @@ private fun sendNotification(messageBody: String?) {
             intent.putExtra(key, remoteMessage.data.getValue(key))
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Activity Stack 을 경로만 남김(A-B-C-D-B => A-B)
-//        val pendingIntent = PendingIntent.getActivity(this, uniId, intent, PendingIntent.FLAG_ONE_SHOT)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0 /* Request code */,
-            intent, PendingIntent.FLAG_IMMUTABLE
-        )
-        // 알림 채널 이름
-        val channelId = "my_channel"
-        // 알림 소리
-        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
         val audio = getSystemService(AUDIO_SERVICE) as AudioManager
         val currentVolume: Int = audio.getStreamVolume(AudioManager.STREAM_SYSTEM)
@@ -202,7 +128,6 @@ private fun sendNotification(messageBody: String?) {
 
         audio.setStreamVolume(AudioManager.STREAM_SYSTEM, 15, 1)
         audio.setStreamVolume(AudioManager.STREAM_RING, 15, 1)
-
 
         audio.playSoundEffect(AudioManager.FX_KEYPRESS_INVALID, 100.0f)
 
@@ -225,31 +150,7 @@ private fun sendNotification(messageBody: String?) {
         catch(e: Exception) {
             callActivityForPolicyAccessSettings()
         }
-
-//audio.setStreamVolume(AudioManager.STREAM_ALARM, 10, true)
-        // 알림에 대한 UI 정보, 작업
-//        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-//            .setSmallIcon(R.drawable.pocket_mon_picachu) // 아이콘 설정
-//            .setContentTitle(remoteMessage.data["title"].toString()) // 제목
-//            .setContentText(remoteMessage.data["message"].toString()) // 메시지 내용
-//            .setAutoCancel(true) // 알람클릭시 삭제여부
-//            .setSound(soundUri)  // 알림 소리
-//            .setContentIntent(pendingIntent) // 알림 실행 시 Intent
-//
-//        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-//
-//
-//
-//        // 오레오 버전 이후에는 채널이 필요
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            val channel = NotificationChannel(channelId, "Notice", NotificationManager.IMPORTANCE_DEFAULT)
-//            notificationManager.createNotificationChannel(channel)
-//        }
-
-        // 알림 생성
-        // notificationManager.notify(uniId, notificationBuilder.build())
     }
-
 
     private fun callActivityForPolicyAccessSettings() {
         // Ask the user to grant access
@@ -284,7 +185,7 @@ private fun sendNotification(messageBody: String?) {
             intent.putExtra(key, remoteMessage.data.getValue(key))
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Activity Stack 을 경로만 남김(A-B-C-D-B => A-B)
-//        val pendingIntent = PendingIntent.getActivity(this, uniId, intent, PendingIntent.FLAG_ONE_SHOT)
+
         val pendingIntent = PendingIntent.getActivity(
             this, 0 /* Request code */,
             intent, PendingIntent.FLAG_IMMUTABLE
