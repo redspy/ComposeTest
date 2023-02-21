@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.media.AudioManager
+import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
 import android.provider.Settings
@@ -199,8 +200,16 @@ private fun sendNotification(messageBody: String?) {
 
         val ringerMode = audio.ringerMode
 
-        // audio.setStreamVolume(AudioManager.STREAM_SYSTEM, 15, 1)
+        audio.setStreamVolume(AudioManager.STREAM_SYSTEM, 15, 1)
+        audio.setStreamVolume(AudioManager.STREAM_RING, 15, 1)
+
+
         audio.playSoundEffect(AudioManager.FX_KEYPRESS_INVALID, 100.0f)
+
+        val uriRingtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val ringtone = RingtoneManager.getRingtone(this, uriRingtone)
+        ringtone.play()
+
         val zenModeValue = Settings.Global.getInt(contentResolver, "zen_mode")
 
         when (zenModeValue) {
@@ -217,7 +226,6 @@ private fun sendNotification(messageBody: String?) {
             callActivityForPolicyAccessSettings()
         }
 
-        //audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
 //audio.setStreamVolume(AudioManager.STREAM_ALARM, 10, true)
         // 알림에 대한 UI 정보, 작업
 //        val notificationBuilder = NotificationCompat.Builder(this, channelId)
