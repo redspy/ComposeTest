@@ -14,6 +14,7 @@ import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.textInputServiceFactory
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +29,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    private var MINSU_PHONE = "eVh8cmA6TKyluftyVWOJ_j:APA91bFm2sUTNggIkmNw8ONpiQUbIic9F2EliKP9xa-4bjdHNLe0Ud4dxQxQXwZvxR9tZsynR_bW6JE8UfuSu00DTciGP1UtVjkGphUC3x1-jL9RRWKCcwLTrTxpUwdMdjEXFIRBR8Jd"
 
     /** DynamicLink */
     private fun makeToast(text: String) {
@@ -44,9 +47,7 @@ class MainActivity : ComponentActivity() {
             // binding.tvToken.text = dataStr
         }
     }
-    /*
-    BJGlwc59TEw024WP7t9Mc0BsQxEeUvdpQZlGOYJDKeQD4_g3U9r6KHryguu5C-foJiv1QX9AYs7O-2uHCxCxAqc
-     */
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -69,9 +70,9 @@ class MainActivity : ComponentActivity() {
                         CardCompose()
                         Card {
                             Button(onClick = {
-                                SendNotification()
-                            }) {
-
+                                SendNotification(MINSU_PHONE)
+                            }, modifier = Modifier.wrapContentSize()) {
+                                Text(text = "민수폰을 찾아라!" )
                             }
                         }
                     }
@@ -80,11 +81,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun SendNotification() {
+    private fun SendNotification(recipientToken: String) {
         val title = "Let's Go!"
         val message = "Together"
-        val recipientToken =
-            "eVh8cmA6TKyluftyVWOJ_j:APA91bFm2sUTNggIkmNw8ONpiQUbIic9F2EliKP9xa-4bjdHNLe0Ud4dxQxQXwZvxR9tZsynR_bW6JE8UfuSu00DTciGP1UtVjkGphUC3x1-jL9RRWKCcwLTrTxpUwdMdjEXFIRBR8Jd"
+        // recipientToken = "eVh8cmA6TKyluftyVWOJ_j:APA91bFm2sUTNggIkmNw8ONpiQUbIic9F2EliKP9xa-4bjdHNLe0Ud4dxQxQXwZvxR9tZsynR_bW6JE8UfuSu00DTciGP1UtVjkGphUC3x1-jL9RRWKCcwLTrTxpUwdMdjEXFIRBR8Jd"
         if (title.isNotEmpty() && message.isNotEmpty() && recipientToken.isNotEmpty()) {
             PushNotification(
                 NotificationData(title, message),
@@ -126,7 +126,7 @@ class MainActivity : ComponentActivity() {
         try {
             val response = RetrofitInstance.api.postNotification(notification)
             if(response.isSuccessful) {
-                Log.d(TAG, "Response: ${Gson().toJson(response)}")
+                //Log.d(TAG, "Response: ${Gson().toJson(response)}")
             } else {
                 Log.e(TAG, response.errorBody().toString())
                 makeToast(response.errorBody().toString())
